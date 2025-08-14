@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>iPhone Lock Screen with Draw-to-Unlock</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0f07;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    #phone {
+      width: 390px;
+      height: 844px;
+      background: #000;
+      border: 2px solid #222;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 15px 45px rgba(0,0,0,0.5);
+    }
+    .screen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #home-screen {
+      background: url('1.jpg') center/cover no-repeat;
+      opacity: 0;
+      transition: opacity 0.8s ease-out;
+      z-index: 1;
+    }
+    #lock-screen {
+      /* Fiery sunset gradient overlay */
+      background: linear-gradient(135deg, #ff512f 0%, #f09819 100%);
+      position: relative;
+      z-index: 2;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 60px 20px 20px;
+    }
+    #time {
+      font-size: 68px;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    }
+    #date {
+      font-size: 20px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+      margin-bottom: auto;
+    }
+    #draw-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    .fade-out {
+      animation: fadeOut 0.8s forwards;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+  <div id="phone">
+    <div id="home-screen" class="screen"></div>
+    <div id="lock-screen" class="screen">
+      <div id="time">18:06</div>
+      <div id="date"></div>
+      <canvas id="draw-canvas"></canvas>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const lock = document.getElementById('lock-screen');
+      const home = document.getElementById('home-screen');
+      const dateEl = document.getElementById('date');
+      const canvas = document.getElementById('draw-canvas');
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      let lastX = 0, lastY = 0;
+
+      // Resize canvas to match display
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Draw line
+      function drawLine(x, y) {
+        if (!drawing) return;
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        lastX = x;
+        lastY = y;
+      }
+
+      // Unlock animation
+      function unlockPhone() {
+        lock.classList.add('fade-out');
+        setTimeout(() => { home.style.opacity = '1'; }, 100);
+        setTimeout(() => { lock.style.display = 'none'; }, 800);
+      }
+
+      // Update date
+      const options = { weekday: 'long', month: 'long', day: 'numeric' };
+      dateEl.textContent = new Date().toLocaleDateString('en-US', options);
+
+      // Canvas events
+      canvas.addEventListener('pointerdown', e => {
+        drawing = true;
+        const rect = canvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+      });
+      canvas.addEventListener('pointermove', e => {
+        const rect = canvas.getBoundingClientRect();
+        drawLine(e.clientX - rect.left, e.clientY - rect.top);
+      });
+      canvas.addEventListener('pointerup', () => {
+        drawing = false;
+        unlockPhone();
+      });
+      canvas.addEventListener('pointerleave', () => {
+        if (drawing) {
+          drawing = false;
+          unlockPhone();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
